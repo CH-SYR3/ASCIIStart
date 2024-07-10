@@ -193,7 +193,7 @@ def remove_headers():
         if os.path.isfile(header_path):
             try:
                 # Remove header from .bashrc
-                os.system('sed -i -e '/^echo /d' -e '/^# /d' ~/.bashrc')
+                os.system("sed -i -e '/^echo /d' -e '/^# /d' ~/.bashrc")
                 
                 # Delete header file from Headers directory
                 os.remove(header_path)
