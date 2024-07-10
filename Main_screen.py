@@ -223,12 +223,25 @@ def remove_headers():
             time.sleep(2)
             return
         
-        # Inform the user about the process
+        # Remove the header from .bashrc if it's currently set
         if header_name == current_header_in_bashrc:
-            cprint(f"Since {header_name} was the current header in .bashrc, it has been removed from .bashrc as well.", "yellow")
-        else:
-            cprint(f"{header_name} was not the current header in .bashrc, so it was only removed from Headers directory.", "yellow")
-            
+            try:
+                with open(os.path.expanduser("~/.bashrc"), 'r') as bashrc_file:
+                    lines = bashrc_file.readlines()
+                
+                with open(os.path.expanduser("~/.bashrc"), 'w') as bashrc_file:
+                    for line in lines:
+                        if marker in line:
+                            # Skip lines until we reach the end marker
+                            while line.strip() != "# === End of ASCIIStart modifications ===":
+                                line = bashrc_file.readline()
+                        else:
+                            bashrc_file.write(line)
+                cprint(f"{header_name} has been removed from .bashrc as well.", "yellow")
+                
+            except Exception as e:
+                cprint(f"Error removing {header_name} from .bashrc: {e}", "red")
+        
     except ValueError:
         cprint("Invalid input. Please enter a valid index number.", "red")
     time.sleep(2)  # Add delay to allow the user to read the confirmation message
