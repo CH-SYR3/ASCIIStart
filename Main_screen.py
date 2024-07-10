@@ -70,40 +70,44 @@ def display_header_list():
 
 def add_ascii_header():
     global header_counter
-    while True:
-        os.system('cls' if os.name == 'nt' else 'clear')
-        display_banner()
-        file_path = colored_input("Enter the full file path of the ASCII art file or type 'back' to return to the main menu: ", "yellow")
-        if file_path == 'back':
-            return
-        if os.path.isfile(file_path):
-            default_header_name = f"head_{header_counter:02}.txt"
-            header_counter += 1
-            
-            ascii_art_file = file_path
-            cprint(f"File set to: {ascii_art_file}", "green")
-            
-            ensure_headers_directory()
-            new_header_path = os.path.join(headers_directory, default_header_name)
-            shutil.copy(file_path, new_header_path)
-            
-            while True:
-                rename_choice = colored_input("Do you want to rename the file? (y/n): ", "yellow")
-                if rename_choice == 'y':
-                    new_name = colored_input("Enter new name (without extension): ", "yellow")
-                    new_header_path = os.path.join(headers_directory, f"{new_name}.txt")
-                    os.rename(os.path.join(headers_directory, default_header_name), new_header_path)
-                    cprint(f"File renamed to: {new_name}.txt", "green")
-                    break
-                elif rename_choice == 'n':
-                    cprint(f"File saved as: {default_header_name}", "green")
-                    break
-                else:
-                    cprint("Invalid input. Please enter 'y' or 'n'.", "red")
-            time.sleep(2)  # Delay to show confirmation message
-            break
-        else:
-            cprint("Invalid file path. Please enter a valid file path.", "red")
+    os.system('cls' if os.name == 'nt' else 'clear')
+    display_banner()
+    
+    # Reset header counter if no files exist in the directory
+    if not list_headers():
+        header_counter = 1
+    
+    file_path = colored_input("Enter the full file path of the ASCII art file or type 'back' to return to the main menu: ", "yellow")
+    if file_path == 'back':
+        return
+    
+    if os.path.isfile(file_path):
+        default_header_name = f"head_{header_counter:02}.txt"
+        header_counter += 1
+        
+        ascii_art_file = file_path
+        cprint(f"File set to: {ascii_art_file}", "green")
+        
+        ensure_headers_directory()
+        new_header_path = os.path.join(headers_directory, default_header_name)
+        shutil.copy(file_path, new_header_path)
+        
+        while True:
+            rename_choice = colored_input("Do you want to rename the file? (y/n): ", "yellow")
+            if rename_choice == 'y':
+                new_name = colored_input("Enter new name (without extension): ", "yellow")
+                new_header_path = os.path.join(headers_directory, f"{new_name}.txt")
+                os.rename(os.path.join(headers_directory, default_header_name), new_header_path)
+                cprint(f"File renamed to: {new_name}.txt", "green")
+                break
+            elif rename_choice == 'n':
+                cprint(f"File saved as: {default_header_name}", "green")
+                break
+            else:
+                cprint("Invalid input. Please enter 'y' or 'n'.", "red")
+        time.sleep(2)  # Delay to show confirmation message
+    else:
+        cprint("Invalid file path. Please enter a valid file path.", "red")
         time.sleep(2)  # Add delay to allow the user to read the confirmation message
 
 def update_header():
@@ -124,27 +128,16 @@ def update_header():
                 with open(header_path, 'r') as file:
                     lines = file.readlines()
                 
-                with open(os.path.expanduser("~/.bashrc"), 'r') as bashrc_file:
-                    bashrc_lines = bashrc_file.readlines()
+                # Backup original .bashrc file
+                shutil.copyfile(os.path.expanduser("~/.bashrc"), os.path.expanduser("~/.bashrc.backup"))
                 
-                with open(os.path.expanduser("~/.bashrc"), 'w') as bashrc:
-                    added_header = False
-                    for line in bashrc_lines:
-                        if marker in line:
-                            added_header = True
-                            bashrc.write(line)
-                            for ascii_line in lines:
-                                bashrc.write(f'echo "{ascii_line.rstrip()}"\n')
-                            bashrc.write(f"\n# === End of ASCIIStart modifications ===\n")
-                        else:
-                            bashrc.write(line)
-                    
-                    if not added_header:
-                        bashrc.write(f"\n{marker}\n")
-                        for ascii_line in lines:
-                            bashrc.write(f'echo "{ascii_line.rstrip()}"\n')
-                        bashrc.write(f"\n# === End of ASCIIStart modifications ===\n")
-                    
+                # Modify .bashrc to add the selected header
+                with open(os.path.expanduser("~/.bashrc"), 'a') as bashrc:
+                    bashrc.write(f"\n{marker}\n")
+                    for line in lines:
+                        bashrc.write(f'echo "{line.rstrip()}"\n')
+                    bashrc.write(f"# === End of ASCIIStart modifications ===\n")
+                
                 current_header = header_name
                 cprint(f"\n{header_name} set as the current header and added to .bashrc.", "green")
             except Exception as e:
@@ -197,37 +190,19 @@ def remove_headers():
         header_index = int(colored_input("Enter the index of the header to remove: ", "yellow")) - 1
         header_name = headers[header_index]
         header_path = os.path.join(headers_directory, header_name)
-        
-        # Check if the selected header is currently set in .bashrc
-        current_header_in_bashrc = get_current_header_in_bashrc()
-        
-        if header_name == current_header_in_bashrc:
-            try:
-                restore_initial_bashrc()
-            except Exception as e:
-                cprint(f"Error restoring initial .bashrc backup: {e}", "red")
-                time.sleep(2)
-                return
-        
-        # Remove the header file
         if os.path.isfile(header_path):
             try:
+                # Remove header from .bashrc
+                os.system('sed -i -e '/^echo /d' -e '/^# /d' ~/.bashrc')
+                
+                # Delete header file from Headers directory
                 os.remove(header_path)
-                cprint(f"\n{header_name} has been removed from Headers directory.", "green")
+                
+                cprint(f"\n{header_name} has been removed from both Headers directory and .bashrc.", "green")
             except Exception as e:
-                cprint(f"Error removing {header_name} from Headers directory: {e}", "red")
+                cprint(f"An error occurred: {e}", "red")
         else:
             cprint("Invalid header index. Please enter a valid index.", "red")
-            time.sleep(2)
-            return
-        
-        # Remove the header from .bashrc if it's currently set
-        if header_name == current_header_in_bashrc:
-            try:
-                remove_header_from_bashrc(header_name)
-            except Exception as e:
-                cprint(f"Error removing {header_name} from .bashrc: {e}", "red")
-        
     except ValueError:
         cprint("Invalid input. Please enter a valid index number.", "red")
     time.sleep(2)  # Add delay to allow the user to read the confirmation message
@@ -252,7 +227,7 @@ Help - ASCII Header Manager
     - Requires a text editor installed (e.g., nano, vim, gedit, notepad, code).
 
 4. Remove Headers:
-    - Deletes the selected header file.
+    - Deletes the selected header file from both Headers directory and .bashrc.
 
 5. Help:
     - Displays this help page with basic commands and usage of the program.
@@ -263,64 +238,6 @@ Help - ASCII Header Manager
 Footer text: Buy me a coffee
     """
     cprint(help_text, "yellow")
-
-def get_current_header_in_bashrc():
-    try:
-        with open(os.path.expanduser("~/.bashrc"), 'r') as bashrc_file:
-            lines = bashrc_file.readlines()
-        
-        in_marker_block = False
-        current_header = None
-        
-        for line in lines:
-            if marker in line:
-                in_marker_block = True
-            elif "# === End of ASCIIStart modifications ===" in line:
-                in_marker_block = False
-            elif in_marker_block and line.strip().startswith('echo "'):
-                # Extract the current header from the echo line
-                current_header = line.strip()[6:-2]
-                break
-        
-        return current_header
-    except Exception as e:
-        cprint(f"Error reading .bashrc: {e}", "red")
-        return None
-
-def restore_initial_bashrc():
-    try:
-        with open(os.path.expanduser("~/.bashrc.initial"), 'r') as initial_bashrc_file:
-            initial_lines = initial_bashrc_file.readlines()
-        
-        with open(os.path.expanduser("~/.bashrc"), 'w') as bashrc_file:
-            bashrc_file.writelines(initial_lines)
-        
-        cprint("Initial .bashrc has been restored successfully.", "green")
-    except Exception as e:
-        raise RuntimeError(f"Error restoring initial .bashrc: {e}")
-
-def remove_header_from_bashrc(header_name):
-    try:
-        with open(os.path.expanduser("~/.bashrc"), 'r') as bashrc_file:
-            lines = bashrc_file.readlines()
-        
-        with open(os.path.expanduser("~/.bashrc"), 'w') as bashrc_file:
-            in_marker_block = False
-            for line in lines:
-                if marker in line:
-                    in_marker_block = True
-                elif "# === End of ASCIIStart modifications ===" in line:
-                    in_marker_block = False
-                elif in_marker_block and line.strip().startswith('echo "') and line.strip()[6:-2] == header_name:
-                    # Replace echo lines with blank lines
-                    bashrc_file.write("\n")
-                else:
-                    bashrc_file.write(line)
-        
-        cprint(f"{header_name} has been removed from .bashrc as well.", "green")
-        
-    except Exception as e:
-        raise RuntimeError(f"Error removing {header_name} from .bashrc: {e}")
 
 if __name__ == "__main__":
     ensure_headers_directory()
