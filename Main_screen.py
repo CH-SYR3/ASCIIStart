@@ -123,11 +123,28 @@ def update_header():
             try:
                 with open(header_path, 'r') as file:
                     lines = file.readlines()
-                with open(os.path.expanduser("~/.bashrc"), 'a') as bashrc:
-                    bashrc.write(f"\n{marker}\n")
-                    for line in lines:
-                        bashrc.write(f'echo "{line.rstrip()}"\n')
-                    bashrc.write(f"\n# === End of ASCIIStart modifications ===\n")
+                
+                with open(os.path.expanduser("~/.bashrc"), 'r') as bashrc_file:
+                    bashrc_lines = bashrc_file.readlines()
+                
+                with open(os.path.expanduser("~/.bashrc"), 'w') as bashrc:
+                    added_header = False
+                    for line in bashrc_lines:
+                        if marker in line:
+                            added_header = True
+                            bashrc.write(line)
+                            for ascii_line in lines:
+                                bashrc.write(f'echo "{ascii_line.rstrip()}"\n')
+                            bashrc.write(f"\n# === End of ASCIIStart modifications ===\n")
+                        else:
+                            bashrc.write(line)
+                    
+                    if not added_header:
+                        bashrc.write(f"\n{marker}\n")
+                        for ascii_line in lines:
+                            bashrc.write(f'echo "{ascii_line.rstrip()}"\n')
+                        bashrc.write(f"\n# === End of ASCIIStart modifications ===\n")
+                    
                 current_header = header_name
                 cprint(f"\n{header_name} set as the current header and added to .bashrc.", "green")
             except Exception as e:
@@ -181,8 +198,26 @@ def remove_headers():
         header_name = headers[header_index]
         header_path = os.path.join(headers_directory, header_name)
         if os.path.isfile(header_path):
-            os.remove(header_path)
-            cprint(f"\n{header_name} has been removed.", "green")
+            try:
+                with open(os.path.expanduser("~/.bashrc"), 'r') as bashrc_file:
+                    bashrc_lines = bashrc_file.readlines()
+                
+                with open(os.path.expanduser("~/.bashrc"), 'w') as bashrc:
+                    removed_header = False
+                    for line in bashrc_lines:
+                        if marker in line:
+                            if not removed_header:
+                                while "# === End of ASCIIStart modifications ===" not in bashrc_lines[bashrc_lines.index(line) + 1]:
+                                    bashrc_lines.pop(bashrc_lines.index(line) + 1)
+                                bashrc_lines.pop(bashrc_lines.index(line) + 1)
+                                removed_header = True
+                        else:
+                            bashrc.write(line)
+                    
+                os.remove(header_path)
+                cprint(f"\n{header_name} has been removed from both Headers directory and .bashrc.", "green")
+            except Exception as e:
+                cprint(f"An error occurred: {e}", "red")
         else:
             cprint("Invalid header index. Please enter a valid index.", "red")
     except ValueError:
