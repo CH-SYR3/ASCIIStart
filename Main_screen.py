@@ -1,11 +1,16 @@
 import os
 import shutil
-import time
+import time 
 import pandas as pd
 import numpy as np
 from termcolor import colored, cprint
+from alive_progress import alive_bar
+from time import sleep
+from tqdm import tqdm
+
 
 # Global variables
+df = pd.DataFrame(np.random.randint(0, 1000, (100000, 600)))
 ascii_art_file = ""
 ascii_art_header_visible = True
 marker = "# === ASCIIStart modifications ==="
@@ -26,12 +31,15 @@ def display_banner():
 | $$  | $$ \$$    $$ \$$    $$|   $$ \|   $$ \ \$$    $$   \$$  $$ \$$    $$| $$        \$$  $$
  \$$   \$$  \$$$$$$   \$$$$$$  \$$$$$$ \$$$$$$  \$$$$$$     \$$$$   \$$$$$$$ \$$         \$$$$ 
 """
+
     if ascii_art_header_visible:
         cprint(ascii_art, "cyan")
-
+        cprint("""                                                                              Created by: SYR3
+""", "light_magenta")
+        
 def display_options():
     options = [
-        "1. Add ASCII Header",
+        "\n1. Add ASCII Header",
         "2. Update Header",
         "3. Edit Headers",
         "4. Remove Headers",
@@ -39,7 +47,6 @@ def display_options():
         "6. Exit"
     ]
     cprint("Select an option to get started:", "red")
-    print("")
     for option in options:
         cprint(option, "yellow")
 
@@ -60,174 +67,370 @@ def display_header_list():
     if not headers:
         cprint("No headers found.", "red")
         return False
-    cprint("\nAvailable headers:", "cyan")
+    cprint("Available headers:", "cyan")
+    for idx, header in enumerate(headers, start=1):
+        if header == current_header:
+            cprint(f"\n  {idx}. {header} (current)", "green")
+        else:
+            cprint(f"\n  {idx}. {header}", "yellow")
+    return True
+
+def add_ascii_header():
+    
+    global header_counter
+    while True:
+        os.system('cls' if os.name == 'nt' else 'clear')
+        display_banner()
+        
+        cprint('\n                          INSTRUCTIONS', "red")
+
+        cprint('\n1. Create or add your custom ascii art file into ASCIIStart folder.', "yellow")
+        cprint('\n2. Type in the name of the saved file and click enter.', "yellow")
+        cprint("\n3. Rename new file when propmted. (optional)", "yellow")
+        cprint("\n4. Done! All newly added headers will be saved to ./headers.", "yellow")
+        cprint("\n")
+    
+
+        # Reset header counter if no files exist in the directory
+        if not list_headers():
+            header_counter = 1
+        
+        file_path = colored_input("\nEnter file name or type 'back' to return: ", "cyan")
+        if file_path == 'back':
+            return
+        
+        if os.path.isfile(file_path):
+            default_header_name = f"head_{header_counter:02}.txt"
+            header_counter += 1
+            
+            print("\n")
+            cprint("Copying file to Headers folder!", "light_magenta")
+            ascii_art_file = file_path
+            
+            # Progress Bar
+            with alive_bar(200, bar = 'bubbles', spinner = 'notes2') as bar:
+                for i in range(200):
+                    sleep(0.03)
+                    bar()    
+
+            cprint(f"Complete!","green") 
+            
+            time.sleep(2)
+            
+            ensure_headers_directory()
+            new_header_path = os.path.join(headers_directory, default_header_name)
+            shutil.copy(file_path, new_header_path)
+            
+            while True:
+                rename_choice = colored_input("Would you like to rename this file? (y/n): ", "cyan")
+                if rename_choice == 'y':
+                    new_name = colored_input("\nEnter name (without extension): ", "yellow")
+                    new_header_path = os.path.join(headers_directory, f"{new_name}.txt")
+                    os.rename(os.path.join(headers_directory, default_header_name), new_header_path)
+                    cprint(f"\nFile renamed to: {new_name}.txt", "white")
+                    time.sleep(2)
+                    cprint("Returning...", "red")
+
+                    break
+                elif rename_choice == 'n':
+                    cprint(f"\nFile saved as: {default_header_name}", "white")
+                    time.sleep(2)
+                    cprint("Returning...", "red")
+                    break
+                else:
+                    cprint("\nInvalid input. Please enter 'y' or 'n'.", "red")
+                    cprint("""
+   ⢀⣤⣶⣶⣤⣄⡀
+⠀⢀⣿⣿⣿⣿⣿⣿⣿⡆
+⠀⠸⣿⣿⣿⣿⣿⡟⡟⡗ ⣿⠉⣿⠉⣿⡏⠹⡏⢹⡏⢹⣿⣿⠉⣿⠉⣿⡟⢋⠛⣿⠉⡟⢉⡏⠹⠏⣹⣿
+⠀⠀⠙⠏⠯⠛⣉⢲⣧⠟ ⣿⠄⣿⠄⣿⡇⡄⠁⢸⡇⢸⣿⣿⠄⣿⠄⣿⠄⣿⣿⣿⠄⡀⢻⣿⡄⢠⣿⣿
+⠀⠀⠠⢭⣝⣾⠿⣴⣿⠇ ⣿⣦⣤⣴⣿⣧⣿⣤⣼⣧⣬⣭⣿⣦⣤⣴⣿⣧⣤⣤⣿⣤⣷⣤⣿⣧⣼⣿⣿
+⠀⠀⢐⣺⡿⠁⠀⠈⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀ ⣶⣶⣶⣶⣶⣶⠀
+⠀⠀⣚⣿⠃ ⣶⣶⣶⣶
+⢀⣿⣿⣿⣷⢒⣢⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⣶⣶⣄⠄
+⢰⣿⣿⡿⣿⣦⠬⢝⡄⠀⠀⠀⠀⠀⠀⢠⣿⠿⠿⠟⠛⠋⠁
+⠠⢿⣿⣷⠺⣿⣗⠒⠜⡄⠀⠀⠀⠀⣴⠟⠁
+⠀⣰⣿⣷⣍⡛⣯⣯⣙⡁⠀⠀⣠⡾⠁
+⠀⠨⢽⣿⣷⢍⣛⣶⢷⣼⣠⣾⠋
+⠀⠀⠘⢿⣿⣖⠬⣹⣶⣿⠟⠁
+⠀⠀⠀⠚⠿⠿⡒⠨⠛⠋
+⠀⠀⠀⠐⢒⣛⣷
+⠀⠀⠀⢘⣻⣭⣭
+⠀⠀⠀⡰⢚⣺⣿
+⠀⠀⢠⣿⣿⣿⣿⣦⡄
+⠀⠀⢸⡿⢿⣿⢿⡿⠃
+⠀⠀⠘⡇⣸⣿⣿⣿⣆
+⠀⠀⠀⠀⠸⣿⡿⠉⠁
+⠀⠀⠀⠀⠀⢿⡟
+                           """, "dark_grey")
+                    cprint("Invalid input. Please enter 'y' or 'n'.", "red")
+                    print("\n")
+                    time.sleep(1.5)  # Delay to show confirmation message
+            break
+        else:
+            cprint("\nInvalid file path. Please enter a valid file path.", "red")
+            cprint("""
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⡶⠛⠛⢦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⠋⠀⠀⠀⠈⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⢀⣠⠴⠞⠛⠉⠉⠉⠉⠉⠉⠛⠒⠾⢤⣀⠀⣀⣠⣤⣄⡀⠀⠀⠀
+⠀⠀⠀⣠⡶⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⢭⡀⠀⠈⣷⠀⠀⠀
+⠀⠀⡴⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⢦⢀⡟⠀⠀⠀
+⠀⣾⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢻⡅⠀⠀⠀
+⢸⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⣄⣀⠀
+⣾⠀⠀⣠⣤⣤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣤⣤⣄⠀⠀⠀⠀⠀⠀⠸⡇⠉⣷
+⣿⠀⠰⣿⣿⣿⡗⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⣧⡴⠋
+⣿⠀⠀⢸⠛⢫⠀⠀⢠⠴⠒⠲⡄⠀⠀⠀⠀⡝⠛⢡⠀⠀⠀⠀⠀⠀⢰⡏⠀⠀
+⢸⡄⠀⢸⡀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⠀⢸⠀⠀⠀⠀⠀⠀⡼⣄⠀⠀
+⠀⢳⡄⠀⡇⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⠀⢸⠀⠀⠀⠀⢀⡼⠁⢸⡇⠀
+⠀⠀⠙⢦⣷⡈⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⠈⡇⠀⣀⡴⠟⠒⠚⠋⠀⠀
+⠀⠀⠀⠀⠈⠛⠾⢤⣤⣀⣀⡀⠀⠀⠀⠀⣀⣈⣇⡤⣷⠚⠉⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⣰⠇⠀⠩⣉⠉⠉⠉⣩⠍⠁⠀⢷⣟⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⡟⠐⠦⠤⠼⠂⠀⠸⠥⠤⠔⠂⠘⣿⣇⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⣸⣧⡟⠳⠒⡄⠀⠀⠀⡔⠲⠚⣧⣀⣿⠿⠷⣶⡆⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠻⣄⢀⠀⠀⡗⠀⠀⠀⡇⠄⢠⠀⣼⠟⠀⢀⣨⠇⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠙⢶⠬⠴⢧⣤⣤⣤⣽⣬⡥⠞⠛⠛⠋⠉⠀⠀⠀⠀⠀⠀⠀
+                   ""","light_magenta")
+            cprint("Invalid file path. Please enter a valid file path.", "red")
+            time.sleep(1.5)  # Add delay to allow the user to read the error message
+
+
+def display_header_list():
+    headers = list_headers()
+    if not headers:
+        cprint("\nNo headers found.", "red")
+        cprint("""
+            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡠⠴⠒⠒⠲⠤⠤⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡴⠋⠀⠀⠀⠀⠠⢚⣂⡀⠈⠲⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡎⡴⠆⠀⠀⠀⠀⠀⢎⠐⢟⡇⠀⠈⢣⣠⠞⠉⠉⠑⢄⠀⠀⣰⠋⡯⠗⣚⣉⣓⡄
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⢠⢞⠉⡆⠀⠀⠀⠀⠀⠓⠋⠀⠀⠀⠀⢿⠀⠀⠀⠀⠈⢧⠀⢹⣠⠕⠘⢧⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⠘⠮⠔⠁⠀⠀⠀⠀⢀⠀⠀⠀⠀⠀⠀⠸⡀⠀⠀⠀⠀⠈⣇⠀⢳⠀⠀⠘⡆⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡴⠋⠉⠓⠦⣧⠀⠀⠀⠀⢦⠤⠤⠖⠋⠇⠀⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⠀⠸⡄⠈⡇⠀⠀⢹⡀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠁⠀⠀⠀⠀⠙⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⠀⠈⣆⠀⠀⠀⢱⠀⡇⠀⠀⠀⡇⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⠀⠀⠀⠀⠀⠀⠘⢆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡰⠁⠀⠀⠸⡄⠀⠀⠀⠳⠃⠀⠀⠀⡇⠀
+⠀⠀⠀⠀⠀⢠⢏⠉⢳⡀⠀⠀⢹⠀⠀⠀⠀⢠⠀⠀⠀⠑⠤⣄⣀⡀⠀⠀⠀⠀⠀⣀⡤⠚⠀⠀⠀⠀⠀⢸⢢⡀⠀⠀⠀⠀⠀⢰⠁⠀
+⠀⠀⣀⣤⡞⠓⠉⠁⠀⢳⠀⠀⢸⠀⠀⠀⠀⢸⡆⠀⠀⠀⠀⠀⠀⠉⠉⠉⠉⠉⠉⠁⠀⠀⠀⠀⠀⠀⠀⢸⠀⠙⠦⣤⣀⣀⡤⠃⠀⠀
+⠀⣰⠗⠒⣚⠀⢀⡤⠚⠉⢳⠀⠈⡇⠀⠀⠀⢸⡧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠸⠵⡾⠋⠉⠉⡏⠀⠀⠀⠈⠣⣀⣳⠀⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠹⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⡼⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠳⡄⠀⠀⠀⠀⠀⠀⠀⡰⠁⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠈⠓⠲⠤⠤⠤⠴⠚⠁⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+               """, "red")
+        cprint("\nNo headers found.", "red")
+        sleep(1.5)
+
+        return False
+    cprint("\nAvailable headers:", "red")
     for idx, header in enumerate(headers, start=1):
         if header == current_header:
             cprint(f"  {idx}. {header} (current)", "green")
         else:
-            cprint(f"  {idx}. {header}", "yellow")
+            cprint(f"\n  {idx}. {header}", "yellow")  # Changed list color to purple (magenta)
     return True
-
-def add_ascii_header():
-    global header_counter
-    os.system('cls' if os.name == 'nt' else 'clear')
-    display_banner()
-    
-    # Reset header counter if no files exist in the directory
-    if not list_headers():
-        header_counter = 1
-    
-    file_path = colored_input("Enter the full file path of the ASCII art file or type 'back' to return to the main menu: ", "yellow")
-    if file_path == 'back':
-        return
-    
-    if os.path.isfile(file_path):
-        default_header_name = f"head_{header_counter:02}.txt"
-        header_counter += 1
-        
-        ascii_art_file = file_path
-        cprint(f"File set to: {ascii_art_file}", "green")
-        
-        ensure_headers_directory()
-        new_header_path = os.path.join(headers_directory, default_header_name)
-        shutil.copy(file_path, new_header_path)
-        
-        while True:
-            rename_choice = colored_input("Do you want to rename the file? (y/n): ", "yellow")
-            if rename_choice == 'y':
-                new_name = colored_input("Enter new name (without extension): ", "yellow")
-                new_header_path = os.path.join(headers_directory, f"{new_name}.txt")
-                os.rename(os.path.join(headers_directory, default_header_name), new_header_path)
-                cprint(f"File renamed to: {new_name}.txt", "green")
-                break
-            elif rename_choice == 'n':
-                cprint(f"File saved as: {default_header_name}", "green")
-                break
-            else:
-                cprint("Invalid input. Please enter 'y' or 'n'.", "red")
-        time.sleep(2)  # Delay to show confirmation message
-    else:
-        cprint("Invalid file path. Please enter a valid file path.", "red")
-        time.sleep(2)  # Add delay to allow the user to read the confirmation message
 
 def update_header():
     global current_header
-    os.system('cls' if os.name == 'nt' else 'clear')
-    display_banner()
-    if not display_header_list():
-        time.sleep(2)
-        return
-    
-    headers = list_headers()
-    try:
-        header_index = int(colored_input("Enter the index of the header to set as current: ", "yellow")) - 1
-        header_name = headers[header_index]
-        header_path = os.path.join(headers_directory, header_name)
-        if os.path.isfile(header_path):
-            try:
-                with open(header_path, 'r') as file:
-                    lines = file.readlines()
-                
-                # Backup original .bashrc file
-                shutil.copyfile(os.path.expanduser("~/.bashrc"), os.path.expanduser("~/.bashrc.backup"))
-                
-                # Modify .bashrc to add the selected header
-                with open(os.path.expanduser("~/.bashrc"), 'a') as bashrc:
-                    bashrc.write(f"\n{marker}\n")
-                    for line in lines:
-                        bashrc.write(f'echo "{line.rstrip()}"\n')
-                    bashrc.write(f"# === End of ASCIIStart modifications ===\n")
-                
-                current_header = header_name
-                cprint(f"\n{header_name} set as the current header and added to .bashrc.", "green")
-            except Exception as e:
-                cprint(f"An error occurred: {e}", "red")
-        else:
-            cprint("Invalid header index. Please enter a valid index.", "red")
-    except ValueError:
-        cprint("Invalid input. Please enter a valid index number.", "red")
-    time.sleep(2)  # Add delay to allow the user to read the confirmation message
+    while True:
+        
+        os.system('cls' if os.name == 'nt' else 'clear')
+        display_banner()
+        if not display_header_list():
+            time.sleep(2)
+            return
+
+
+        headers = list_headers()
+        ct = print("")
+        header_input = colored_input("\nChoose header or type 'back' to return: ", "blue")
+        
+        if header_input == 'back':
+            return
+
+        try:
+            header_index = int(header_input) - 1
+            header_name = headers[header_index]
+            header_path = os.path.join(headers_directory, header_name)
+            if os.path.isfile(header_path):
+                try:
+                    with open(header_path, 'r') as file:
+                        lines = file.readlines()
+                    
+                    os.system('cls' if os.name == 'nt' else 'clear')  # Clear the screen before loading progress bar
+                    display_banner()
+
+                    # Modify .bashrc to add the selected header
+                    with open(os.path.expanduser("~/.bashrc"), 'a') as bashrc:
+                        bashrc.write(f"\n{marker}\n")
+                        for line in lines:
+                            bashrc.write(f'echo "{line.rstrip()}"\n')
+                        bashrc.write(f"# === End of ASCIIStart modifications ===\n")
+                    
+                    cprint("\nModifying heder file ...", "light_magenta")
+                    
+                    # Progress Bar
+                    with alive_bar(200, bar='bubbles', spinner='notes2') as bar:
+                        for i in range(200):
+                            sleep(0.03)
+                            bar() 
+
+                    current_header = header_name
+                    cprint(f"Update Complete!", "green")
+                    cprint("\nThe current header is now set to: {header_name}", "white")
+                    time.sleep(3.5)
+                    cprint("Returning...", "red")
+                    time.sleep(2)
+                    break
+                except Exception as e:
+                    cprint(f"An error occurred: {e}", "red")
+            else:
+                cprint("Invalid header index. Please enter a valid index.", "red")
+        except ValueError:
+            cprint("Invalid input. Please enter a valid index number.", "red")
+        time.sleep(2)  # Add delay to allow the user to read the error message
 
 def edit_headers():
-    os.system('cls' if os.name == 'nt' else 'clear')
-    display_banner()
-    if not display_header_list():
-        time.sleep(2)
-        return
-    
-    headers = list_headers()
-    try:
-        header_index = int(colored_input("Enter the index of the header to edit: ", "yellow")) - 1
-        header_name = headers[header_index]
-        header_path = os.path.join(headers_directory, header_name)
-        if os.path.isfile(header_path):
-            available_editors = ["nano", "vim", "gedit", "notepad", "code"]  # List of common text editors
-            editor_found = False
-            for editor in available_editors:
-                if shutil.which(editor):
-                    os.system(f"{editor} {header_path}")
-                    editor_found = True
-                    break
-            if not editor_found:
-                cprint("No available text editor found. Please install a text editor (e.g., nano, vim, gedit, notepad, code).", "red")
+    while True:
+        os.system('cls' if os.name == 'nt' else 'clear')
+        display_banner()
+        if not display_header_list():
+            time.sleep(2)
+            return
+        
+        headers = list_headers()
+        choice = colored_input("\nChoose file to edit or type 'back' to return: ", "blue").lower()
+
+        if choice == 'back':
+            return
+
+        try:
+            header_index = int(choice) - 1
+            if 0 <= header_index < len(headers):
+                header_name = headers[header_index]
+                header_path = os.path.join(headers_directory, header_name)
+                if os.path.isfile(header_path):
+                    available_editors = ["nano", "vim", "gedit", "notepad", "code"]  # List of common text editors
+                    editor_found = False
+                    for editor in available_editors:
+                        if shutil.which(editor):
+                            os.system(f"{editor} {header_path}")
+                            editor_found = True
+                            break
+                    if not editor_found:
+                        cprint("\nNo available text editor found. Please install a text editor (e.g., nano, vim, gedit, notepad, code).", "red")
+                    else:
+                        cprint(f"\nEdits to {header_name} are saved.", "green")
+                        time.sleep(2)
+                else:
+                    cprint("Invalid header index. Please enter a valid index.", "red")
             else:
-                cprint(f"\nEdits to {header_name} are saved.", "green")
-        else:
-            cprint("Invalid header index. Please enter a valid index.", "red")
-    except ValueError:
-        cprint("Invalid input. Please enter a valid index number.", "red")
-    time.sleep(2)  # Add delay to allow the user to read the confirmation message
+                cprint("Invalid header index. Please enter a valid index.", "red")
+        except ValueError:
+            cprint("Invalid input. Please enter a valid index number.", "red")
+        time.sleep(2)  # Add delay to allow the user to read the error message
+
 
 def remove_headers():
-    os.system('cls' if os.name == 'nt' else 'clear')
-    display_banner()
-    if not display_header_list():
-        time.sleep(2)
-        return
-    
-    headers = list_headers()
-    try:
-        header_index = int(colored_input("Enter the index of the header to remove: ", "yellow")) - 1
-        header_name = headers[header_index]
-        header_path = os.path.join(headers_directory, header_name)
-        if os.path.isfile(header_path):
-            try:
-                # Remove header from .bashrc
-                os.system("sed -i -e '/^echo /d' -e '/^# /d' ~/.bashrc")
+    while True:
+        os.system('cls' if os.name == 'nt' else 'clear')
+        display_banner()
+        if not display_header_list():
+            time.sleep(2)
+            return
+        
+        headers = list_headers()
+        choice = colored_input("\nEnter header to remove or type 'back' to return: ", "blue").lower()
+        
+        if choice == 'back':
+            return
+
+        try:
+            header_index = int(choice) - 1
+            if 0 <= header_index < len(headers):
+                header_name = headers[header_index]
+                header_path = os.path.join(headers_directory, header_name)
                 
-                # Delete header file from Headers directory
-                os.remove(header_path)
-                
-                cprint(f"\n{header_name} has been removed from both Headers directory and .bashrc.", "green")
-            except Exception as e:
-                cprint(f"An error occurred: {e}", "red")
-        else:
-            cprint("Invalid header index. Please enter a valid index.", "red")
-    except ValueError:
-        cprint("Invalid input. Please enter a valid index number.", "red")
-    time.sleep(2)  # Add delay to allow the user to read the confirmation message
+                if header_name == current_header:
+                    cprint("\nCannot remove the current header. Please set a different current header first.", "red")
+                    cprint("""
+⣿⣿⡿⣫⣾⠏⠄⠄⠄⠄⠄⠄⠄⠄⠄⠄⠄⠄⢀⣀⣀⣀⣀⠄⠄⠄⠄⠄⠄
+⣿⡇⠱⠉⠁⠄⠄⠄⠄⠄⠄⢀⣀⣤⣶⣶⣿⣿⣿⣿⣿⣿⣿⣦⠄⠄⠄⠄⠄
+⣿⡇⠄⠄⠄⠄⠄⢀⣠⣛⡩⣩⣭⡹⣿⣿⣿⣿⠞⣛⣛⣛⡲⣿⡇⠄⠄⠄⠄
+⣿⡇⠄⠄⠄⡾⣡⣾⣿⣷⣹⣿⣿⡿⣪⡻⠟⣱⣿⣿⣿⣿⣿⣷⡹⠄⠄⠄⠄
+⣿⡇⠄⠄⣼⡇⣿⣻⣿⠟⡛⢿⣿⣾⣿⡇⢰⣍⢻⡿⠛⢿⣿⡭⣿⣷⠄⠄⠄
+⣿⣧⣄⡀⣿⡇⣮⣽⣿⣮⣉⣾⣿⣿⣿⣇⡸⣿⣿⣆⠛⣰⣿⣾⡿⣿⠄⠄⠄
+⣿⣇⡼⣄⣿⣿⡄⠙⢿⣏⣿⣿⡮⠁⣉⣾⣷⡈⠃⢿⣿⣬⡭⠝⣀⣿⠄⠄⠐
+⡆⡇⣹⣿⣿⣿⣿⡿⠓⠛⣉⣉⣉⣉⣙⣛⠓⠾⣟⢿⣿⣿⣿⣿⣿⣿⣿⠇⠄⠙
+⠁⡇⣞⣿⡿⠋⠁⠄⠄⠈⠉⠙⠛⠛⠻⠿⠿⠿⣶⣌⠻⣿⣿⣿⣿⣿⢗⢴⣆⢣
+⠸⣇⡻⠈⠄⠄⠄⠄⠄⠄⠄⠄⠄⠄⠄⠄⠄⠄⠈⢻⣷⡌⢿⣿⣿⣿⢸⠼⣣⣾
+⣦⡀⠄⠄⠄⠄⠄⠄⠄⠄⠄⢀⠄⠄⠄⠄⠄⠄⠄⠄⠙⠛⠈⣿⡫⡼⢠⣾⣿⣿
+⣿⣇⠄⣀⣠⡀⠄⠄⠴⠾⠿⠿⠶⠶⣦⣤⡀⠄⠄⠄⠄⠄⠄⢨⠯⢁⣿⣿⣿⣿
+⣿⣿⣦⢒⠤⣅⡶⣶⣶⣾⣿⣿⣿⣷⣶⣮⣍⠢⠄⠄⠄⠄⠄⠐⢠⣾⣿⣿⣿⣿
+⣿⣿⣿⣧⡐⠫⣉⡿⣬⡞⢿⣿⢯⠽⣶⡽⢟⣛⢖⣨⣛⠛⢃⣴⣿⣿⣿⣿⣿⣿
+                           """, "red")
+                    cprint("Cannot remove the current header. Please set a different current header first.", "red")
+
+                else:
+                    if os.path.isfile(header_path):
+                        try:
+                            # Remove header from .bashrc
+                            print("\n")
+                            os.system("sed -i -e '/^echo /d' -e '/^# /d' ~/.bashrc")
+                            
+                            # Delete header file from Headers directory
+                            os.remove(header_path)
+                            
+
+                            cprint("\nRemoving header from headers directory", "light_magenta")
+                             # Progress Bar
+                            with alive_bar(50, bar='bubbles', spinner='notes2') as bar:
+                                for i in range(50):
+                                    sleep(0.03)
+                                    bar() 
+                                    
+                            cprint("\nRemoving header from system file", "light_magenta")
+                            # Progress Bar
+                            with alive_bar(100, bar='bubbles', spinner='notes2') as bar:
+                                for i in range(100):
+                                    sleep(0.03)
+                                    bar() 
+
+
+                            
+                            cprint(f"\n{header_name} has been removed from both Headers directory and system file!", "green")
+                            time.sleep(2)
+                        except Exception as e:
+                            cprint(f"An error occurred: {e}", "red")
+                    else:
+                        cprint("Header file not found.", "red")
+            else:
+                cprint("Invalid header index. Please enter a valid index.", "red")
+        except ValueError:
+            cprint("Invalid input. Please enter a valid index number.", "red")
+        time.sleep(2)  # Add delay to allow the user to read the error message
+
 
 def display_help():
     os.system('cls' if os.name == 'nt' else 'clear')
     display_banner()
+   
+    cprint("Help - ASCII Header Manager", "red")
     help_text = """
-Help - ASCII Header Manager
-
 1. Add ASCII Header:
     - Allows you to add a new ASCII header from a file.
     - You can choose to rename the saved file.
+    - 1 file can be used to create many ASCII headers.
 
 2. Update Header:
-    - Sets a selected header as the current header and adds it to .bashrc.
+    - Sets a selected header as the current header on terminal and adds it to system file.
     - Each line is prefixed with echo " and suffixed with ".
-    - Includes a comment tracker for easier removal from .bashrc.
+    - Includes a comment tracker for easier removal from system file..
 
 3. Edit Headers:
     - Opens the selected header file in a text editor for editing.
     - Requires a text editor installed (e.g., nano, vim, gedit, notepad, code).
 
 4. Remove Headers:
-    - Deletes the selected header file from both Headers directory and .bashrc.
+    - Deletes the selected header file from both Headers directory and system file.
 
 5. Help:
     - Displays this help page with basic commands and usage of the program.
@@ -245,7 +448,7 @@ if __name__ == "__main__":
         os.system('cls' if os.name == 'nt' else 'clear')
         display_banner()
         display_options()
-        choice = colored_input("\nEnter your choice: ", "yellow")
+        choice = colored_input("\nEnter your choice: ", "blue")
         
         if choice == '1':
             add_ascii_header()
@@ -261,10 +464,10 @@ if __name__ == "__main__":
         
         elif choice == '5':
             display_help()
-            colored_input("\nPress Enter to return to the main menu: ", "yellow")
+            colored_input("\nPress Enter to return to the main menu: ", "blue")
         
         elif choice == '6' or choice == 'exit':
-            cprint("Exiting the program. Goodbye!", "yellow")
+            cprint("Exiting the program. Goodbye!", "red")
             break
         
         else:
