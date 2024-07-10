@@ -230,13 +230,18 @@ def remove_headers():
                     lines = bashrc_file.readlines()
                 
                 with open(os.path.expanduser("~/.bashrc"), 'w') as bashrc_file:
+                    in_marker_block = False
                     for line in lines:
                         if marker in line:
-                            # Skip lines until we reach the end marker
-                            while line.strip() != "# === End of ASCIIStart modifications ===":
-                                line = bashrc_file.readline()
+                            in_marker_block = True
+                        if in_marker_block and "# === End of ASCIIStart modifications ===" in line:
+                            in_marker_block = False
+                        if in_marker_block and line.strip().startswith('echo "'):
+                            # Replace echo lines with empty lines
+                            bashrc_file.write("\n")
                         else:
                             bashrc_file.write(line)
+                
                 cprint(f"{header_name} has been removed from .bashrc as well.", "yellow")
                 
             except Exception as e:
