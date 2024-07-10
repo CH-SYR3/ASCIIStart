@@ -13,7 +13,6 @@ df = pd.DataFrame(np.random.randint(0, 1000, (100000, 600)))
 headers_directory = "Headers"
 current_header = "None"
 header_counter = 1  # Counter for default header naming
-initial_bashrc_backup = os.path.join(headers_directory, "initial_bashrc_backup")
 
 def display_banner():
     ascii_art = """
@@ -102,7 +101,6 @@ def add_ascii_header():
                 else:
                     cprint("Invalid input. Please enter 'y' or 'n'.", "red")
             time.sleep(2)  # Delay to show confirmation message
-            backup_initial_bashrc()  # Backup .bashrc after the first header is added
             break
         else:
             cprint("Invalid file path. Please enter a valid file path.", "red")
@@ -226,24 +224,7 @@ def remove_headers():
         # Remove the header from .bashrc if it's currently set
         if header_name == current_header_in_bashrc:
             try:
-                with open(os.path.expanduser("~/.bashrc"), 'r') as bashrc_file:
-                    lines = bashrc_file.readlines()
-                
-                with open(os.path.expanduser("~/.bashrc"), 'w') as bashrc_file:
-                    in_marker_block = False
-                    for line in lines:
-                        if marker in line:
-                            in_marker_block = True
-                        if in_marker_block and "# === End of ASCIIStart modifications ===" in line:
-                            in_marker_block = False
-                        if in_marker_block and line.strip().startswith('echo "'):
-                            # Replace echo lines with empty lines
-                            bashrc_file.write("\n")
-                        else:
-                            bashrc_file.write(line)
-                
-                cprint(f"{header_name} has been removed from .bashrc as well.", "yellow")
-                
+                remove_header_from_bashrc(header_name)
             except Exception as e:
                 cprint(f"Error removing {header_name} from .bashrc: {e}", "red")
         
@@ -283,36 +264,63 @@ Footer text: Buy me a coffee
     """
     cprint(help_text, "yellow")
 
-def backup_initial_bashrc():
-    try:
-        if not os.path.exists(initial_bashrc_backup):
-            shutil.copy(os.path.expanduser("~/.bashrc"), initial_bashrc_backup)
-    except Exception as e:
-        cprint(f"Error backing up initial .bashrc: {e}", "red")
-
-def restore_initial_bashrc():
-    try:
-        with open(initial_bashrc_backup, 'r') as backup_file:
-            backup_content = backup_file.read()
-        
-        with open(os.path.expanduser("~/.bashrc"), 'w') as bashrc_file:
-            bashrc_file.write(backup_content)
-    except Exception as e:
-        cprint(f"Error restoring initial .bashrc backup: {e}", "red")
-        raise  # Re-raise the exception to handle it in the caller
-
 def get_current_header_in_bashrc():
     try:
         with open(os.path.expanduser("~/.bashrc"), 'r') as bashrc_file:
-            for line in bashrc_file:
-                if marker in line:
-                    # Find the next line to determine the current header
-                    next_line = next(bashrc_file).strip()
-                    if next_line.startswith('echo "') and next_line.endswith('"'):
-                        return next_line[6:-1].strip()  # Extract header name from echo line
+            lines = bashrc_file.readlines()
+        
+        in_marker_block = False
+        current_header = None
+        
+        for line in lines:
+            if marker in line:
+                in_marker_block = True
+            elif "# === End of ASCIIStart modifications ===" in line:
+                in_marker_block = False
+            elif in_marker_block and line.strip().startswith('echo "'):
+                # Extract the current header from the echo line
+                current_header = line.strip()[6:-2]
+                break
+        
+        return current_header
     except Exception as e:
         cprint(f"Error reading .bashrc: {e}", "red")
-    return "None"
+        return None
+
+def restore_initial_bashrc():
+    try:
+        with open(os.path.expanduser("~/.bashrc.initial"), 'r') as initial_bashrc_file:
+            initial_lines = initial_bashrc_file.readlines()
+        
+        with open(os.path.expanduser("~/.bashrc"), 'w') as bashrc_file:
+            bashrc_file.writelines(initial_lines)
+        
+        cprint("Initial .bashrc has been restored successfully.", "green")
+    except Exception as e:
+        raise RuntimeError(f"Error restoring initial .bashrc: {e}")
+
+def remove_header_from_bashrc(header_name):
+    try:
+        with open(os.path.expanduser("~/.bashrc"), 'r') as bashrc_file:
+            lines = bashrc_file.readlines()
+        
+        with open(os.path.expanduser("~/.bashrc"), 'w') as bashrc_file:
+            in_marker_block = False
+            for line in lines:
+                if marker in line:
+                    in_marker_block = True
+                elif "# === End of ASCIIStart modifications ===" in line:
+                    in_marker_block = False
+                elif in_marker_block and line.strip().startswith('echo "') and line.strip()[6:-2] == header_name:
+                    # Replace echo lines with blank lines
+                    bashrc_file.write("\n")
+                else:
+                    bashrc_file.write(line)
+        
+        cprint(f"{header_name} has been removed from .bashrc as well.", "green")
+        
+    except Exception as e:
+        raise RuntimeError(f"Error removing {header_name} from .bashrc: {e}")
 
 if __name__ == "__main__":
     ensure_headers_directory()
