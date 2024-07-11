@@ -18,6 +18,7 @@ df = pd.DataFrame(np.random.randint(0, 1000, (100000, 600)))
 headers_directory = "Headers"
 current_header = "None"
 header_counter = 1  # Counter for default header naming
+bashrcSwitch = "~/.zshrc" #use ~/.bashrc for testing
 
 def display_banner():
     ascii_art = """
@@ -259,23 +260,34 @@ def update_header():
                     display_banner()
 
                     # Modify .bashrc to add the selected header
-                    with open(os.path.expanduser("~/.bashrc"), 'a') as bashrc:
-                        bashrc.write(f"\n{marker}\n")
+                    with open(os.path.expanduser(bashrcSwitch), 'a') as zshrc:
+                        zshrc.write(f"\n{marker}\n")
                         for line in lines:
-                            bashrc.write(f'echo "{line.rstrip()}"\n')
-                        bashrc.write(f"# === End of ASCIIStart modifications ===\n")
+                            zshrc.write(f'echo "{line.rstrip()}"\n')
+                        zshrc.write(f"# === End of ASCIIStart modifications ===\n")
                     
                     cprint("\nModifying heder file ...", "light_magenta")
                     
                     # Progress Bar
                     with alive_bar(200, bar='bubbles', spinner='notes2') as bar:
-                        for i in range(200):
+                        for i in range(100):
                             sleep(0.03)
                             bar() 
 
+                             
+                    cprint("Updating terminal header...", "light_magenta")
+                    
+                    # Progress Bar
+                    with alive_bar(200, bar='bubbles', spinner='notes2') as bar:
+                        for i in range(100):
+                            sleep(0.03)
+                            bar() 
+
+
+
                     current_header = header_name
                     cprint(f"Update Complete!", "green")
-                    cprint("\nThe current header is now set to: {header_name}", "white")
+                    cprint(f"\nThe current header is now set to: {header_name}", "white")
                     time.sleep(3.5)
                     cprint("Returning...", "red")
                     time.sleep(2)
@@ -374,7 +386,7 @@ def remove_headers():
                         try:
                             # Remove header from .bashrc
                             print("\n")
-                            os.system("sed -i -e '/^echo /d' -e '/^# /d' ~/.bashrc")
+                            os.system(f"sed -i -e '/^echo /d' -e '/^# /d' {bashrcSwitch}")
                             
                             # Delete header file from Headers directory
                             os.remove(header_path)
@@ -417,8 +429,7 @@ def display_help():
     help_text = """
 1. Add ASCII Header:
     - Allows you to add a new ASCII header from a file.
-    - You can choose to rename the saved file.
-    - 1 file can be used to create many ASCII headers.
+    - 
 
 2. Update Header:
     - Sets a selected header as the current header on terminal and adds it to system file.
